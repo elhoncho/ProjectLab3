@@ -3,6 +3,7 @@
 #include <terminal.h>
 #include <string.h>
 #include <SPI.h>
+#include <pinout.h>
 
 int main(void)
 {
@@ -19,10 +20,10 @@ int main(void)
 	P1OUT &= 0x00;
 	P2OUT &= 0x00;
 
-	P2SEL &= ~BIT6;
-    P2SEL2 &= ~BIT6;
-    P2DIR |= BIT6;
-    P2OUT |= BIT6; //Turn on ADF4002
+	P2SEL &= ~ADF_ENABLE;
+    P2SEL2 &= ~ADF_ENABLE;
+    P2DIR |= ADF_ENABLE;
+    P2OUT |= ADF_ENABLE; //Turn on ADF4002
 
     //Configure MUX in pin
     P2DIR &= ~BIT0; //Set pin to input

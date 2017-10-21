@@ -3,6 +3,7 @@
 #include <UART.h>
 #include <string.h>
 #include <SPI.h>
+#include <pinout.h>
 
 int volatile newCmd = 0;
 
@@ -15,10 +16,14 @@ struct commandStruct{
 
 void CmdClear();
 void AdfWrite();
+void FrequencyChange();
+void Lock();
 
 const struct commandStruct commands[] ={
     {"clear", &CmdClear, "Clears the screen"},
     {"go", &AdfWrite, "Writes to the ADF4002"},
+    {"freq", &FrequencyChange, "Change PLL Frequency"},
+    {"lock", &Lock, "Mux out to PLL Lock"},
     {"",0,""} //End of commands indicator. Must be last.
 };
 
@@ -31,7 +36,36 @@ void CmdClear(){
 }
 
 void AdfWrite(){
-    SPIwrite();
+    //Init Latch
+    SPIwrite(0x00, 0x30, 0xA3);
+    //Function Latch
+    SPIwrite(0x00, 0x30, 0xA2);
+    //R load
+    SPIwrite(0x00, 0x00, 0x04);
+    //N load
+    SPIwrite(0x00, 0x06, 0x01);
+}
+
+void FrequencyChange(){
+    P2OUT &= ~ADF_ENABLE;
+    //Function Latch
+    SPIwrite(0x00, 0x30, 0xC2);
+    //R load
+    SPIwrite(0x00, 0x00, 0x04);
+    //N load
+    SPIwrite(0x00, 0x06, 0x01);
+    P2OUT ^= ADF_ENABLE;
+}
+
+void Lock(){
+    P2OUT &= ~ADF_ENABLE;
+    //Function Latch
+    SPIwrite(0x00, 0x30, 0xCA);
+    //R load
+    SPIwrite(0x00, 0x00, 0x04);
+    //N load
+    SPIwrite(0x00, 0x06, 0x01);
+    P2OUT ^= ADF_ENABLE;
 }
 
 void terminalOpen(){

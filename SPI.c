@@ -1,4 +1,6 @@
 #include <msp430.h>
+#include <stdint.h>
+#include <pinout.h>
 
 void SPIopen(){
     //Turn off UCB0 State Machine
@@ -7,10 +9,10 @@ void SPIopen(){
     P1SEL |= BIT5 + BIT7 ; // P1.5 = SPI_Clk, P1.7=MOSI
     P1SEL2 |= BIT5 +  BIT7; // P1.5 = SPI_Clk, P1.7=MOSI
 
-    P2SEL &= ~BIT5;
-    P2SEL2 &= ~BIT5;
-    P2DIR |= BIT5;
-    P2OUT |= BIT5; //Active when CS goes low
+    P2SEL &= ~ADF_CS;
+    P2SEL2 &= ~ADF_CS;
+    P2DIR |= ADF_CS;
+    P2OUT |= ADF_CS; //Active when CS goes low
 
 
     //10101000 = 0xA8
@@ -34,46 +36,16 @@ void SPIread(){
 
 }
 
-void SPIwrite(){
+void SPIwrite(uint16_t part1, uint16_t part2, uint16_t part3){
+    while(!(IFG2 & UCB0TXIFG));
+    P2OUT &= ~ADF_CS;
+    UCB0TXBUF = part1;
     while(!(IFG2 & UCB0TXIFG) || (UCB0STAT & UCBUSY));
-        P2OUT &= ~BIT5;
-        UCB0TXBUF = 0x00;
-        while(!(IFG2 & UCB0TXIFG) || (UCB0STAT & UCBUSY));
-        UCB0TXBUF = 0x30;
-        while(!(IFG2 & UCB0TXIFG) || (UCB0STAT & UCBUSY));
-        UCB0TXBUF = 0xB3;
-        while(!(IFG2 & UCB0TXIFG) || (UCB0STAT & UCBUSY));
-        P2OUT ^= BIT5;
-
-        while(!(IFG2 & UCB0TXIFG));
-        P2OUT &= ~BIT5;
-        UCB0TXBUF = 0x00;
-        while(!(IFG2 & UCB0TXIFG) || (UCB0STAT & UCBUSY));
-        UCB0TXBUF = 0x30;
-        while(!(IFG2 & UCB0TXIFG) || (UCB0STAT & UCBUSY));
-        UCB0TXBUF = 0xB2;
-        while(!(IFG2 & UCB0TXIFG) || (UCB0STAT & UCBUSY));
-        P2OUT ^= BIT5;
-
-        while(!(IFG2 & UCB0TXIFG));
-        P2OUT &= ~BIT5;
-        UCB0TXBUF = 0x00;
-        while(!(IFG2 & UCB0TXIFG) || (UCB0STAT & UCBUSY));
-        UCB0TXBUF = 0x00;
-        while(!(IFG2 & UCB0TXIFG) || (UCB0STAT & UCBUSY));
-        UCB0TXBUF = 0x04;
-        while(!(IFG2 & UCB0TXIFG) || (UCB0STAT & UCBUSY));
-        P2OUT ^= BIT5;
-
-        while(!(IFG2 & UCB0TXIFG));
-        P2OUT &= ~BIT5;
-        UCB0TXBUF = 0x00;
-        while(!(IFG2 & UCB0TXIFG) || (UCB0STAT & UCBUSY));
-        UCB0TXBUF = 0x01;
-        while(!(IFG2 & UCB0TXIFG) || (UCB0STAT & UCBUSY));
-        UCB0TXBUF = 0x01;
-        while(!(IFG2 & UCB0TXIFG) || (UCB0STAT & UCBUSY));
-        P2OUT ^= BIT5;
+    UCB0TXBUF = part2;
+    while(!(IFG2 & UCB0TXIFG) || (UCB0STAT & UCBUSY));
+    UCB0TXBUF = part3;
+    while(!(IFG2 & UCB0TXIFG) || (UCB0STAT & UCBUSY));
+    P2OUT ^= ADF_CS;
 }
 
 void SPImain(){
