@@ -37,9 +37,9 @@ void CmdClear(){
 
 void AdfWrite(){
     //Init Latch
-    SPIwrite(0x00, 0x30, 0xA3);
+    SPIwrite(0x00, 0x30, 0x93);
     //Function Latch
-    SPIwrite(0x00, 0x30, 0xA2);
+    SPIwrite(0x00, 0x30, 0x92);
     //R load
     SPIwrite(0x00, 0x00, 0x04);
     //N load
@@ -49,22 +49,22 @@ void AdfWrite(){
 void FrequencyChange(){
     P2OUT &= ~ADF_ENABLE;
     //Function Latch
-    SPIwrite(0x00, 0x30, 0xC2);
+    SPIwrite(0x00, 0x30, 0x92);
     //R load
     SPIwrite(0x00, 0x00, 0x04);
     //N load
-    SPIwrite(0x00, 0x06, 0x01);
+    SPIwrite(0x00, 0x07, 0x01);
     P2OUT ^= ADF_ENABLE;
 }
 
 void Lock(){
     P2OUT &= ~ADF_ENABLE;
     //Function Latch
-    SPIwrite(0x00, 0x30, 0xCA);
+    SPIwrite(0x00, 0x30, 0x92);
     //R load
     SPIwrite(0x00, 0x00, 0x04);
     //N load
-    SPIwrite(0x00, 0x06, 0x01);
+    SPIwrite(0x00, 0x08, 0x01);
     P2OUT ^= ADF_ENABLE;
 }
 
