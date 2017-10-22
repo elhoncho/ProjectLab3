@@ -4,30 +4,32 @@
 #include <string.h>
 #include <SPI.h>
 #include <pinout.h>
+#include <pll.h>
+#include <stdlib.h>
+
+extern uint8_t debug;
 
 int volatile newCmd = 0;
 
-typedef void(*functionPointerType)(void);
+typedef void(*functionPointerType)(char *arg1, char *arg2);
 struct commandStruct{
     char const *name;
     functionPointerType execute;
     char const *help;
 };
 
-void CmdClear();
-void AdfWrite();
-void FrequencyChange();
-void Lock();
+static void CmdClear(char *arg1, char *arg2);
+static void AdfWrite(char *arg1, char *arg2);
+static void FrequencyChange(char *arg1, char *arg2);
 
 const struct commandStruct commands[] ={
     {"clear", &CmdClear, "Clears the screen"},
-    {"go", &AdfWrite, "Writes to the ADF4002"},
+    {"init", &AdfWrite, "Initializes the ADF4002"},
     {"freq", &FrequencyChange, "Change PLL Frequency"},
-    {"lock", &Lock, "Mux out to PLL Lock"},
     {"",0,""} //End of commands indicator. Must be last.
 };
 
-void CmdClear(){
+static void CmdClear(char *arg1, char *arg2){
     char tmpStr[25];
     strcpy(tmpStr, "\033[2J\033[;H");
     terminalWrite(tmpStr);
@@ -35,7 +37,7 @@ void CmdClear(){
     terminalWrite(tmpStr);
 }
 
-void AdfWrite(){
+static void AdfWrite(char *arg1, char *arg2){
     //Init Latch
     SPIwrite(0x00, 0x30, 0x93);
     //Function Latch
@@ -46,26 +48,8 @@ void AdfWrite(){
     SPIwrite(0x00, 0x06, 0x01);
 }
 
-void FrequencyChange(){
-    P2OUT &= ~ADF_ENABLE;
-    //Function Latch
-    SPIwrite(0x00, 0x30, 0x92);
-    //R load
-    SPIwrite(0x00, 0x00, 0x04);
-    //N load
-    SPIwrite(0x00, 0x07, 0x01);
-    P2OUT ^= ADF_ENABLE;
-}
-
-void Lock(){
-    P2OUT &= ~ADF_ENABLE;
-    //Function Latch
-    SPIwrite(0x00, 0x30, 0x92);
-    //R load
-    SPIwrite(0x00, 0x00, 0x04);
-    //N load
-    SPIwrite(0x00, 0x08, 0x01);
-    P2OUT ^= ADF_ENABLE;
+static void FrequencyChange(char *arg1, char *arg2){
+    PLL_Write(atoi(arg1), atoi(arg2));
 }
 
 void terminalOpen(){
@@ -84,32 +68,63 @@ void termianlClose(){
 
 void terminalRead(){
     if(newCmd){
-        static int i;
+        static int i = 0;
         char tmpChar;
-        char tmpStr[] = "\r\nCommand Entered\r\n>";
-        terminalWrite(tmpStr);
+
+        char arg[3][22];
+
+        strcpy(arg[0],"\r\nCommand Entered\r\n>");
+
+        terminalWrite(arg[0]);
 
         tmpChar = UART_Read();
 
-        tmpStr[0] = '\0';
-        while(tmpChar != (char)-1){
-            int len = strlen(tmpStr);
+        arg[0][0] = '\0';
+        arg[1][0] = '\0';
+        arg[2][0] = '\0';
 
-            //Dont store \r or \n
-            if(tmpChar != 0x0D && tmpChar != 0x0A){
-                tmpStr[len] = tmpChar;
-                tmpStr[len+1] = '\0';
+        i = 0;
+        while(tmpChar != (char)-1){
+            int len = strlen(arg[i]);
+
+            //Dont store \r or \n or space or .
+            if(tmpChar != 0x0D && tmpChar != 0x0A && tmpChar != 0x20 && tmpChar != 0x2E){
+                arg[i][len] = tmpChar;
+                arg[i][len+1] = '\0';
+            }
+            //space or . => new argument
+            else if(tmpChar == 0x20 ||  tmpChar == 0x2E){
+                i++;
             }
 
             tmpChar = UART_Read();
         }
 
+        if(debug){
+            char tmpStr[25] = "\r\nArg0: \r\n";
+            terminalWrite(tmpStr);
+            terminalWrite(arg[0]);
+
+            strcpy(tmpStr, "\r\nArg1: \r\n");
+            terminalWrite(tmpStr);
+            terminalWrite(arg[1]);
+
+            strcpy(tmpStr, "\r\nArg2: \r\n");
+            terminalWrite(tmpStr);
+            terminalWrite(arg[2]);
+
+            strcpy(tmpStr, "\r\n>");
+            terminalWrite(tmpStr);
+        }
+
         i = 0;
-        while(commands[i].name){
-            if(strcmp(tmpStr, commands[i].name) == 0){
-                commands[i].execute();
+        if(strlen(arg[0]) >= 1){
+            while(commands[i].name){
+                if(strcmp(arg[0], commands[i].name) == 0){
+                    commands[i].execute(arg[1], arg[2]);
+                }
+                i++;
             }
-            i++;
         }
 
         newCmd = 0;

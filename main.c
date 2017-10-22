@@ -1,9 +1,12 @@
-#include <msp430.h>				
+#include <msp430.h>
 #include <UART.h>
 #include <terminal.h>
 #include <string.h>
 #include <SPI.h>
 #include <pinout.h>
+#include <pll.h>
+
+uint8_t debug = 1;
 
 int main(void)
 {
@@ -38,15 +41,13 @@ int main(void)
 	SPIopen();
 	terminalOpen();
 	SPImain();
-
+	PLL_Open(16383, 8191, 24);
 
 	while(1)
 	{
 		//Loops to run
 	    terminalMain();
 	    UART_Main();
-
-
 	}
 
 	return 0;
