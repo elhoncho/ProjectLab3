@@ -9,7 +9,7 @@
 
 static uint16_t maxClockDevider = 16383;
 static uint16_t maxLoopDevider = 8191;
-static float refFreqMHz = 24;
+static uint8_t refFreqMHz = 24;
 
 static uint8_t rLatch0 = 0x04;
 static uint8_t rLatch1 = 0x00;
@@ -21,10 +21,12 @@ static uint8_t nLatch2 = 0x00;
 
 static void BuildRefLatch(uint16_t rDevide);
 static void BuildNLatch(uint16_t nDevide);
+static void FreqBoundsMsg();
+static void ClkBoundsMsg();
 
 extern uint8_t debug;
 
-void PLL_Open(int16_t maxClkDevide, int16_t maxLoopDevide, float referenceFreqMHz){
+void PLL_Open(int16_t maxClkDevide, int16_t maxLoopDevide, int8_t referenceFreqMHz){
     maxClockDevider = maxClkDevide;
     maxLoopDevider = maxLoopDevide;
     refFreqMHz =referenceFreqMHz;
@@ -39,43 +41,94 @@ void PLL_Read(){
 }
 
 void PLL_ManualFrequency(int freqDivider){
-    BuildNLatch(freqDivider);
+    char tmpStr[25];
+    if(freqDivider >0){
+        if(freqDivider <= maxLoopDevider){
+            BuildNLatch(freqDivider);
+            if(debug){
+                strcpy(tmpStr,"\r\nManual Freq Divider:\r\n");
+                terminalWrite(tmpStr);
 
-    if(debug){
-        char tmpStr[25] = "\r\nManual Freq Divider:\r\n";
-        terminalWrite(tmpStr);
-        itoa(freqDivider, tmpStr, 10);
-        terminalWrite(tmpStr);
+                itoa(freqDivider, tmpStr, 10);
+                terminalWrite(tmpStr);
+
+                strcpy(tmpStr,"\r\n");
+                terminalWrite(tmpStr);
+            }
+
+            P2OUT &= ~ADF_ENABLE;
+            //Function Latch
+            SPIwrite(0x00, 0x30, 0x92);
+            //R load
+            SPIwrite(rLatch2, rLatch1, rLatch0);
+            //N load
+            SPIwrite(nLatch2, nLatch1, nLatch0);
+            P2OUT ^= ADF_ENABLE;
+        }
+        else{
+            FreqBoundsMsg();
+        }
     }
-
-    P2OUT &= ~ADF_ENABLE;
-    //Function Latch
-    SPIwrite(0x00, 0x30, 0x92);
-    //R load
-    SPIwrite(rLatch2, rLatch1, rLatch0);
-    //N load
-    SPIwrite(nLatch2, nLatch1, nLatch0);
-    P2OUT ^= ADF_ENABLE;
+    else{
+        FreqBoundsMsg();
+    }
 }
 
 void PLL_ManualClock(int clockDivider){
-    BuildRefLatch(clockDivider);
+    if(clockDivider > 0){
+        if(clockDivider <= maxClockDevider){
+            BuildRefLatch(clockDivider);
+            if(debug){
+                char tmpStr[25] = "\r\nReference Divider:\r\n";
+                terminalWrite(tmpStr);
 
-    if(debug){
-        char tmpStr[25] = "\r\nReference Divider:\r\n";
-        terminalWrite(tmpStr);
-        itoa(clockDivider, tmpStr, 10);
-        terminalWrite(tmpStr);
+                itoa(clockDivider, tmpStr, 10);
+                terminalWrite(tmpStr);
+
+                strcpy(tmpStr,"\r\n");
+                terminalWrite(tmpStr);
+            }
+
+            P2OUT &= ~ADF_ENABLE;
+            //Function Latch
+            SPIwrite(0x00, 0x30, 0x92);
+            //R load
+            SPIwrite(rLatch2, rLatch1, rLatch0);
+            //N load
+            SPIwrite(nLatch2, nLatch1, nLatch0);
+            P2OUT ^= ADF_ENABLE;
+        }
+        else{
+            ClkBoundsMsg();
+        }
     }
+    else{
+        ClkBoundsMsg();
+    }
+}
 
-    P2OUT &= ~ADF_ENABLE;
-    //Function Latch
-    SPIwrite(0x00, 0x30, 0x92);
-    //R load
-    SPIwrite(rLatch2, rLatch1, rLatch0);
-    //N load
-    SPIwrite(nLatch2, nLatch1, nLatch0);
-    P2OUT ^= ADF_ENABLE;
+static void ClkBoundsMsg(){
+    char tmpStr[25];
+    strcpy(tmpStr,"Clk must between 0 and ");
+    terminalWrite(tmpStr);
+
+    itoa(maxClockDevider, tmpStr, 10);
+    terminalWrite(tmpStr);
+
+    strcpy(tmpStr,"\r\n");
+    terminalWrite(tmpStr);
+}
+
+static void FreqBoundsMsg(){
+    char tmpStr[25];
+    strcpy(tmpStr,"Freq must between 0 and ");
+    terminalWrite(tmpStr);
+
+    itoa(maxLoopDevider, tmpStr, 10);
+    terminalWrite(tmpStr);
+
+    strcpy(tmpStr,"\r\n");
+    terminalWrite(tmpStr);
 }
 
 void PLL_Write(int freqMHz, int freqDecimal){
@@ -96,7 +149,11 @@ void PLL_Write(int freqMHz, int freqDecimal){
 
         strcpy(tmpStr,"\r\nLoop Divider:\r\n");
         terminalWrite(tmpStr);
+
         itoa(bestLoopDevide, tmpStr, 10);
+        terminalWrite(tmpStr);
+
+        strcpy(tmpStr,"\r\n");
         terminalWrite(tmpStr);
     }
 

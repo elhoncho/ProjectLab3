@@ -34,6 +34,7 @@ const struct commandStruct commands[] ={
     {"regf", &ManualFrequencyChange, "Manual Set Frequency Reg"},
     {"regc", &ManualClockChange, "Manual Set Ref(Clk) Reg"},
     {"ls", &ListCommands, "Run Help Function"},
+    {"help", &ListCommands, "Run Help Function"},
     {"debug", &ToggelDebug, "Toggels Debug Mode"},
     {"",0,""} //End of commands indicator. Must be last.
 };
