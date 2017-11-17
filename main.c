@@ -6,7 +6,7 @@
 #include <pinout.h>
 #include <pll.h>
 
-uint8_t debug = 1;
+uint8_t debug = 0;
 
 int main(void)
 {

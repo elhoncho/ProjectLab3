@@ -38,36 +38,49 @@ void PLL_Read(){
 
 }
 
+void PLL_ManualFrequency(int freqDivider){
+    BuildNLatch(freqDivider);
+
+    if(debug){
+        char tmpStr[25] = "\r\nManual Freq Divider:\r\n";
+        terminalWrite(tmpStr);
+        itoa(freqDivider, tmpStr, 10);
+        terminalWrite(tmpStr);
+    }
+
+    P2OUT &= ~ADF_ENABLE;
+    //Function Latch
+    SPIwrite(0x00, 0x30, 0x92);
+    //R load
+    SPIwrite(rLatch2, rLatch1, rLatch0);
+    //N load
+    SPIwrite(nLatch2, nLatch1, nLatch0);
+    P2OUT ^= ADF_ENABLE;
+}
+
+void PLL_ManualClock(int clockDivider){
+    BuildRefLatch(clockDivider);
+
+    if(debug){
+        char tmpStr[25] = "\r\nReference Divider:\r\n";
+        terminalWrite(tmpStr);
+        itoa(clockDivider, tmpStr, 10);
+        terminalWrite(tmpStr);
+    }
+
+    P2OUT &= ~ADF_ENABLE;
+    //Function Latch
+    SPIwrite(0x00, 0x30, 0x92);
+    //R load
+    SPIwrite(rLatch2, rLatch1, rLatch0);
+    //N load
+    SPIwrite(nLatch2, nLatch1, nLatch0);
+    P2OUT ^= ADF_ENABLE;
+}
+
 void PLL_Write(int freqMHz, int freqDecimal){
     uint16_t bestLoopDevide = 65535;
     uint16_t bestRefDevide = 65535;
-
-    /*
-    float bestDelta = 32000;
-    float previousDelta = 32000;
-    float testDelta = 32000;
-
-    for(int i = 1; i < maxClockDevider; i++){
-        for(int j = 1; j < maxLoopDevider; j++){
-            previousDelta = testDelta;
-            testDelta = (refFreqMHz/i) - (freqMHz/j);
-            if(testDelta < 0){
-                testDelta = testDelta*-1;
-            }
-            if(testDelta < bestDelta){
-                bestDelta = testDelta;
-                bestLoopDevide = j;
-                bestRefDevide = i;
-            }
-            if(bestDelta < .001){
-                break;
-            }
-        }
-        if(bestDelta < .001){
-            break;
-        }
-    }
-    */
 
     bestRefDevide = 240;
     bestLoopDevide = freqMHz*10+freqDecimal;
@@ -76,17 +89,14 @@ void PLL_Write(int freqMHz, int freqDecimal){
     BuildNLatch(bestLoopDevide);
 
     if(debug){
-        char tmpStr[25] = "\r\nReference Devider:\r\n";
+        char tmpStr[25] = "\r\nReference Divider:\r\n";
         terminalWrite(tmpStr);
         itoa(bestRefDevide, tmpStr, 10);
         terminalWrite(tmpStr);
 
-        strcpy(tmpStr,"\r\nLoop Devider:\r\n");
+        strcpy(tmpStr,"\r\nLoop Divider:\r\n");
         terminalWrite(tmpStr);
         itoa(bestLoopDevide, tmpStr, 10);
-        terminalWrite(tmpStr);
-
-        strcpy(tmpStr,"\r\n>");
         terminalWrite(tmpStr);
     }
 
@@ -101,7 +111,7 @@ void PLL_Write(int freqMHz, int freqDecimal){
 }
 
 static void BuildRefLatch(uint16_t rDevide){
-     rLatch2 = 0x00;
+    rLatch2 = 0x00;
     //Shift rDevide right by 2 to put in the 00 control bits, and with 0xFF00 to select middle 8 bits, shift right 8 bits to get middle 8 bits
     rLatch1 = (uint8_t)(((rDevide << 2) & 0xFF00) >> 8);
     rLatch0 = (uint8_t)((rDevide<< 2) & 0x00FF);

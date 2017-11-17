@@ -19,7 +19,7 @@ static struct circleBuffer txBuffer;
 static int pushToBuffer(struct circleBuffer *b, const char inChar);
 static int popFromBuffer(struct circleBuffer *b, char *outChar);
 
-int UART_Open(){
+void UART_Open(){
     /* Configure hardware UART */
 
     UCA0CTL1 |= UCSWRST;
@@ -43,7 +43,7 @@ int UART_Open(){
 
 }
 
-int UART_Close(){
+void UART_Close(){
 
 }
 
@@ -116,8 +116,8 @@ void USCI0RX_ISR(void)
     char rxChar;
     rxChar = UCA0RXBUF;
 
-    //Check to make sure inputString is an ASCII char and not null
-    if(((rxChar & 0x80) == 0) && (rxChar != '\0')){
+    //Check to make sure inputString is an ASCII char and not null or CR or LF
+    if(((rxChar & 0x80) == 0) && (rxChar != '\0') && (rxChar != 0x0D)  && (rxChar != 0x0A)){
         pushToBuffer(&rxBuffer, rxChar);
         pushToBuffer(&txBuffer, rxChar);
     }
